@@ -26,9 +26,11 @@ Shut down the machine and enable the enhanced mode on the host
 
     Set-VM -VMName "Ubuntu Hyper-V" -EnhancedSessionTransportType HvSocket
 
-Check the status of enhanced session mode, or activate it with: 
+Check the status of enhanced session mode
 
     Get-VMHost | select Name, EnableEnhancedSessionMode
+
+Activate the global mode with
 
     Set-VMHost -EnableEnhancedSessionMode $true
 
