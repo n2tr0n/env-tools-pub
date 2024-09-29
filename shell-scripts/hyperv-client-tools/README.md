@@ -1,6 +1,19 @@
 # Hyperv-client-tools
 
-This will install hyper-v desktop tools on a linux vm - tested on ubuntu24. Does not work on mint 22
+This will install hyper-v desktop tools on a linux vm - 
+
+Tested and working on:
+
+- Ubuntu 24
+
+Tested NOT working on:
+
+- Mint 22
+
+Future testing: 
+
+- Kali v??.?
+- Debian v12.?
 
 # Ubuntu 24+
 
