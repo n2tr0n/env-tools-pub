@@ -36,7 +36,7 @@ Activate the global mode with
 
 to roll back
 
-    > Set-VM "(YOUR VM NAME HERE)" -EnhancedSessionTransportType VMBus
+    Set-VM "(YOUR VM NAME HERE)" -EnhancedSessionTransportType VMBus
 
 # usage
 
