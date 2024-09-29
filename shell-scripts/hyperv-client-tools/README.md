@@ -1,4 +1,4 @@
-# hyperv-client-tools
+# Hyperv-client-tools
 
 This will install hyper-v desktop tools on a linux vm - tested on ubuntu24. Does not work on mint 22
 
@@ -38,7 +38,7 @@ to roll back
 
     Set-VM "(YOUR VM NAME HERE)" -EnhancedSessionTransportType VMBus
 
-# usage
+# Usage
 
 boot the machine and you should get a requester box asking what resolution you want to run in during startup. exit the window to boot in normal (not enhanced) mode
 
