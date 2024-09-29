@@ -1,6 +1,6 @@
 # Hyperv-client-tools
 
-This will install hyper-v desktop tools on a linux vm on the tested distros. It pre-emtively installs all the latest updates, you may wish to disable that part (first section of the script. 
+This will install hyper-v desktop tools on a linux vm on the tested distros. It pre-emtively installs all the latest updates, you may wish to disable that part (first section of the script).
 
 I did not write this script, I simply found it in a variety of places and mirrored it and wrote this readme. Thanks to the original author and testers.
 
