@@ -1,0 +1,208 @@
+# Debian 12.6 Common Deployment Taskbook
+
+#
+# This will deploy common env goo to a host, avoiding destructive changes if it has already run before.
+#
+
+---
+
+# Basics
+
+# Checking to see if host is already a bastion
+
+  - name: Checking if this host is already a docker bastion server
+    stat:
+     path: /.tombstone/common_tombstone
+    register: common_tombstone_result
+    check_mode: no
+
+  - name: Setting the hostname
+    template:
+     src: templates/d12-hostname.conf.j2
+     dest: /etc/hostname
+    notify:
+      - Reboot the host
+      - Wait for the host
+
+  - name: Install our system aliases
+    copy:
+     src: files/profile.d/aliases.sh
+     dest: /etc/profile.d/aliases.sh
+     owner: root
+     group: root
+     mode: 0644
+
+# Packages
+
+  - name: Enforcing our RPM's
+    apt:
+      name:
+        - ansible
+        - strace
+        - ltrace
+        - mlocate
+        - ufw
+        - ntp
+        - atop
+        - htop
+        - nmon
+        - nmap
+        - git
+        - net-tools
+        - unzip
+        - bind9-utils
+        - rsync
+        - curl
+        - lynx
+        - tcpdump
+        - vim
+        - whois
+        - sudo
+        - ntpstat
+      state: present
+      update_cache: yes
+
+# # Services
+
+  - name: Enforcing enabled services
+    service:
+     name: "{{ item }}"
+     enabled: yes
+     state: started
+    with_items:
+       - ntpd
+       - ufw
+
+# # Firewall
+
+  - name: Enable UFW
+    ufw:
+      state: enabled
+      policy: deny
+      direction: incoming
+  
+  - name: Allow SSH
+    ufw:
+      rule: allow
+      name: OpenSSH    
+
+## Housekeeping
+
+  - name: Enforcing disabled services
+    service:
+     name: "{{ item }}"
+     enabled: no
+    with_items:
+      - debug-shell
+
+  - name: Uncomment let g:skip_defaults_vim in /etc/vim/vimrc
+    lineinfile:
+      path: /etc/vim/vimrc
+      regexp: '^"let g:skip_defaults_vim = 1'
+      line: 'let g:skip_defaults_vim = 1'
+      state: present
+
+# configure our custom prompts
+
+  - name: Move custom_promts.sh to /etc/profile.d
+    copy:
+      src: files/profile.d/custom_prompts.sh
+      dest: /etc/profile.d/custom_prompts.sh
+      owner: root
+      group: root
+      mode: u+x
+    when: common_tombstone_result.stat.exists == False      
+
+  - name: Copy bashrc_prompt to target host
+    copy:
+      src: files/skel/bashrc_prompt
+      dest: /tmp/bashrc_prompt
+      owner: root
+      group: root
+      mode: 0644
+    when: common_tombstone_result.stat.exists == False 
+
+  - name: Read custom_prompts.sh content
+    slurp:
+      src: /tmp/bashrc_prompt
+    register: skel_bashrc_contents
+    when: common_tombstone_result.stat.exists == False    
+
+  - name: Add custom prompts to /etc/skel/.bashrc
+    blockinfile:
+      path: /etc/skel/.bashrc
+      marker: "# {mark} ANSIBLE MANAGED BLOCK: custom prompts"
+      block: "{{ skel_bashrc_contents.content | b64decode }}"
+    when: common_tombstone_result.stat.exists == False      
+
+  - name: Copy bashrc_prompt to 'user1' user's home directory
+    copy:
+      src: files/skel/bashrc_prompt
+      dest: /home/me/.bashrc
+      owner: user1
+      group: user1
+      mode: 0644
+    when: common_tombstone_result.stat.exists == False  
+
+  - name: Copy bashrc_prompt to root user's home directory
+    copy:
+      src: files/root/bashrc_prompt
+      dest: /root/.bashrc
+      owner: root
+      group: root
+      mode: 0644
+    when: common_tombstone_result.stat.exists == False  
+
+  - name: Ensure bash is the default shell for future users
+    become: yes
+    lineinfile:
+      path: /etc/default/useradd
+      regexp: '^SHELL='
+      line: 'SHELL=/bin/bash'
+      create: yes
+    when: common_tombstone_result.stat.exists == False
+
+# # MBVA - Make Bootups Verbose Again
+
+  - name: Ensure GRUB configuration is verbose
+    lineinfile:
+      path: /etc/default/grub
+      regexp: '^GRUB_CMDLINE_LINUX_DEFAULT='
+      line: 'GRUB_CMDLINE_LINUX_DEFAULT=""'
+      backup: yes
+    when: common_tombstone_result.stat.exists == False      
+
+  - name: Update GRUB configuration
+    command: update-grub
+    notify:
+      - Reboot the host
+      - Wait for the host      
+    when: common_tombstone_result.stat.exists == False
+
+  - name: Copy etc tmux conf file
+    copy:
+      src: files/etc/tmux.conf
+      dest: /etc/tmux.conf
+      owner: root
+      group: root
+      mode: 0644
+    when: common_tombstone_result.stat.exists == False
+     
+# # Tombstone the host
+
+  - name: Creating /.tombstone (simplified ansible provisioning tracker)
+    file:
+     path: /.tombstone
+     state: directory
+     owner: root
+     group: root
+     mode: 0755
+
+  - name: Creating common_tombstone tracker file for this host
+    copy:
+     src: files/.tombstone/common_tombstone
+     dest: /.tombstone/common_tombstone
+     owner: root
+     group: root
+     mode: 0755
+...

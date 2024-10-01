@@ -1,0 +1,10 @@
+# This file is used for ansible role tracking.
+#
+# Do not delete it.
+#
+#     - The Management
+#
+
+## Roles ##
+
+role::common

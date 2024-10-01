@@ -1,0 +1,16 @@
+# Debian 12.6 Common Handlers
+---
+ - name: Reboot the host
+   shell: sleep 5 ; shutdown -r now "This host will reboot now for ansible maintenance."
+   async: 10
+   poll: 0
+
+ - name: Wait for the host
+   local_action: wait_for host="{{inventory_hostname}}" delay=15 state=started port="{{ansible_port}}" connect_timeout=10 timeout=180
+
+ - name: Restart SSH
+   service:
+     name: sshd
+     state: restarted
+...
+
