@@ -1,6 +1,6 @@
 # Debian 12.6 Foundry Role Deployment Taskbook
 #
-# This playbook will deploy a native http bound foundry from a copy you provide to a system that already has the 'common' role. It will prevent
+# This ansible role will deploy a native http bound foundry from a copy you provide to a system that already has the 'common' role. It will prevent
 # itself from doing any damage if it is re-run again on the same host using a bastion detection dropfile (the tombstone file)
 #
 # replace [IPAddress]:/git-artifacts/foundry-vtt-linux/FoundryVTT-latest.zip or the whole task named 
