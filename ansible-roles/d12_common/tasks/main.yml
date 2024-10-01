@@ -1,12 +1,9 @@
 # Debian 12.6 Common Deployment Taskbook
-
 #
 # This will deploy common env goo to a host, avoiding destructive changes if it has already run before.
 #
 
 ---
-
-# Basics
 
 # Checking to see if host is already a bastion
 
