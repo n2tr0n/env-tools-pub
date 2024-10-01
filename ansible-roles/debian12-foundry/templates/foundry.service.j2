@@ -1,0 +1,12 @@
+[Unit]
+Description=Foundry Virtual Tabletop
+After=network.target
+
+[Service]
+User=foundry
+ExecStart=/usr/bin/node /home/foundry/foundryvtt/resources/app/main.js --dataPath=/home/foundry/foundrydata
+Restart=always
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

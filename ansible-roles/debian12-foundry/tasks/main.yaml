@@ -1,0 +1,149 @@
+# Debian 12.6 Foundry Role Deployment Taskbook
+#
+# This playbook will deploy a native http bound foundry from a copy you provide to a system that already has the 'common' role. It will prevent
+# itself from doing any damage if it is re-run again on the same host using a bastion detection dropfile (the tombstone file)
+#
+# replace [IPAddress]:/git-artifacts/foundry-vtt-linux/FoundryVTT-latest.zip or the whole task named 
+# "Download foundryvtt.zip from git-artifacts" with whatever version or file retrieval protocol you 
+# want to deploy
+#
+
+---
+
+# Checking to see if host is a foundry bastion
+
+  - name: Checking if this host is already a foundry bastion server
+    stat:
+     path: /.tombstone/foundry_tombstone
+    register: foundry_tombstone_result
+    check_mode: no
+
+# install requirements
+
+  - name: Install libssl-dev
+    apt:
+      name:
+        - libssl-dev
+      state: present
+      update_cache: yes
+
+  - name: Add NodeSource APT repository for Node.js 20.x
+    shell: curl -sL https://deb.nodesource.com/setup_20.x | bash -
+    when: foundry_tombstone_result.stat.exists == False
+
+  - name: Verify NodeSource repository is added
+    command: grep -q "deb.nodesource.com/node_20.x" /etc/apt/sources.list.d/nodesource.list
+    register: repo_check
+    ignore_errors: yes
+    when: foundry_tombstone_result.stat.exists == False
+
+  - name: Install Node.js
+    apt:
+      name: nodejs
+      state: present
+      update_cache: yes
+
+  - name: Check if Node.js is installed
+    command: node --version
+    register: node_version_output
+    ignore_errors: yes
+    changed_when: false
+
+  - name: Print Node.js version
+    debug:
+      msg: "Node.js version is {{ node_version_output.stdout }}"
+    when: node_version_output.rc == 0
+
+  - name: Fail if Node.js is not installed
+    fail:
+      msg: "Node.js is not installed."
+    when: node_version_output.rc != 0
+
+# # Now handle the installation of foundry
+
+  - name: Create the Foundry VTT user
+    user:
+      name: foundry
+      comment: "Foundry VTT User"
+      shell: /bin/bash
+      home: "/home/foundry"
+      createhome: yes
+
+  - name: Create the Foundry VTT directories
+    file:
+      path: "{{ item }}"
+      state: directory
+      mode: '0755'
+      owner: foundry
+      group: foundry
+    with_items:
+      - "/home/foundry/foundryvtt"
+      - "/home/foundry/foundrydata"
+
+  - name: Check if FoundryVTT-latest.zip exists
+    stat:
+      path: "/home/foundry/foundryvtt/FoundryVTT-latest.zip"
+    register: foundryvtt_zip
+  
+  - name: Download foundryvtt.zip from git-artifacts
+    ansible.builtin.command:
+      cmd: "/usr/bin/rsync --delay-updates -F --compress --archive --out-format='<<CHANGED>>%i %n%L' rsync://[IPADDRESS]:/git-artifacts/foundry-vtt-linux/FoundryVTT-latest.zip /home/foundry/foundryvtt/FoundryVTT-latest.zip"
+    register: rsync_output
+    failed_when: rsync_output.rc != 0 and 'No such file or directory' not in rsync_output.stderr
+    when: not foundryvtt_zip.stat.exists
+  
+  - name: Change file mode to 644
+    file:
+      path: "/home/foundry/foundryvtt/FoundryVTT-latest.zip"
+      mode: "0755"
+      owner: foundry
+      group: foundry
+
+  - name: Unzip foundryvtt.zip
+    unarchive:
+      src: "/home/foundry/foundryvtt/FoundryVTT-latest.zip"
+      dest: "/home/foundry/foundryvtt"
+      remote_src: yes
+    when: not foundryvtt_zip.stat.exists
+
+  - name: Ensure ownership by foundry:foundry
+    file:
+      path: "/home/foundry/foundryvtt"
+      state: directory
+      recurse: yes
+      owner: foundry
+      group: foundry
+    when: foundry_tombstone_result.stat.exists == False
+
+  - name: Open firewall port 30000 TCP for Foundry
+    ufw:
+      rule: allow
+      port: '30000'
+      proto: tcp
+      comment: 'Foundry'
+
+  - name: Create systemd service file for Foundry VTT
+    ansible.builtin.template:
+      src: templates/foundry.service.j2
+      dest: /etc/systemd/system/foundry.service
+
+  - name: Reload systemd to apply the new service
+    command: systemctl daemon-reload
+    when: foundry_tombstone_result.stat.exists == False
+
+  - name: Enable Foundry VTT service to start at boot
+    systemd:
+      name: foundry
+      enabled: yes
+      state: started
+  
+# # Tombstone the host
+
+  - name: Creating common_tombstone tracker file for this host
+    copy:
+     src: files/.tombstone/foundry_tombstone
+     dest: /.tombstone/foundry_tombstone
+     owner: root
+     group: root
+     mode: 0755
+...
