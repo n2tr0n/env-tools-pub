@@ -2,7 +2,8 @@ set -g mouse on
 
 set-option -g history-limit 1000000000
 
-set -g pane-border-format "#{pane_index}"
+#set -g pane-border-format "#{pane_index}"
+set -g pane-border-format "#[fg=colour6]#{pane_index} #[fg=yellow]#{pane_title}"
 set -g pane-border-status top
 
 setw -g window-status-format "#[fg=colour6][#I]#[fg=white]#W"
